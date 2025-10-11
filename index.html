@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monty Hall Problem Simulator</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for creating pie charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Tone.js CDN for adding sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        /* Apply 'Inter' font and a deep blue background reminiscent of a stage curtain */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* A deep, dark blue-gray */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top to give space for content above charts */
+            min-height: 100vh; /* Ensure body takes at least full viewport height */
+            padding: 20px; /* Padding around the main application container */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        /* Main application container styling with a lighter blue-gray and a subtle shadow */
+        #app {
+            background-color: #e2e8f0; /* Lighter blue-gray, almost white */
+            border-radius: 12px; /* Rounded corners */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Softer, more spread shadow */
+            padding: 30px; /* Inner padding */
+            width: 100%; /* Full width on smaller screens */
+            max-width: 1200px; /* Max width for larger screens */
+            display: flex; /* Use flexbox for layout */
+            flex-direction: column; /* Stack sections vertically by default */
+            gap: 25px; /* Space between sections */
+        }
+        /* Styling for individual door elements */
+        .door {
+            transition: all 0.3s ease-in-out; /* Smooth transitions for hover effects and state changes */
+            min-width: 120px; /* Ensure doors have a minimum size */
+            height: 150px; /* Fixed height for doors */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Border styling for the initially picked door (deep blue) */
+        .door.bg-blue-500 {
+            border: 4px solid #1e3a8a; /* Tailwind blue-800 */
+        }
+        /* Border styling for the opened goat door (dark red) */
+        .door.bg-rose-400 {
+            border: 4px solid #be123c; /* Tailwind rose-700 */
+        }
+        /* Border styling for the car door (vibrant green) */
+        .door.bg-lime-400 {
+            border: 4px solid #65a30d; /* Tailwind lime-700 */
+        }
+        /* Styling for chart containers to control size */
+        .chart-container {
+            width: 100%; /* Full width within its parent */
+            max-width: 500px; /* Max width for charts */
+            height: 300px; /* Fixed height for charts */
+            margin: 0 auto; /* Center charts horizontally */
+        }
+        /* Responsive adjustments for medium and larger screens */
+        @media (min-width: 768px) {
+            #app {
+                flex-direction: row; /* Arrange sections horizontally */
+                justify-content: space-between; /* Space out main game and charts sections */
+                align-items: flex-start; /* Align sections to the top */
+            }
+            .main-game-section {
+                flex: 2; /* Main game section takes more space */
+            }
+            .charts-section {
+                flex: 1; /* Charts section takes less space */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Main Game Section (left side on larger screens) -->
+        <div class="main-game-section flex flex-col items-center gap-6 p-6 md:p-8 rounded-lg bg-gray-50 shadow-inner">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-4 text-center">Monty Hall Problem Simulator</h1>
+            <p class="text-lg text-gray-700 text-center max-w-2xl mb-6">
+                Test your intuition with the classic Monty Hall problem! Choose a door, then decide whether to stick with your initial choice or switch after a goat door is revealed.
+            </p>
+
+            <!-- Message Display -->
+            <div id="messageDisplay" class="text-xl font-semibold text-blue-700 h-8 flex items-center justify-center mb-6">
+                <!-- Game messages will appear here -->
+                Pick a door to start!
+            </div>
+
+            <!-- Doors Container -->
+            <div id="doorsContainer" class="flex justify-center gap-6 w-full max-w-lg mb-8">
+                <!-- Door elements will be dynamically added here by JavaScript -->
+            </div>
+
+            <!-- Simulation Controls -->
+            <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-md flex flex-col gap-4 items-center">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Run Multiple Simulations</h3>
+
+                <!-- Simulation Speed Option -->
+                <div class="w-full">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Simulation Speed:</label>
+                    <div class="flex justify-around gap-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-blue-600 h-5 w-5" name="simulationSpeed" value="instant" checked>
+                            <span class="ml-2 text-gray-700">Instant</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-blue-600 h-5 w-5" name="simulationSpeed" value="fast">
+                            <span class="ml-2 text-gray-700">Fast (Visual)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Simulation Strategy Option -->
+                <div class="w-full">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Simulation Strategy:</label>
+                    <div class="flex justify-around gap-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-green-600 h-5 w-5" name="simulationStrategy" value="stay" checked>
+                            <span class="ml-2 text-gray-700">Stay Only</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-orange-600 h-5 w-5" name="simulationStrategy" value="switch">
+                            <span class="ml-2 text-gray-700">Switch Only</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" class="form-radio text-purple-600 h-5 w-5" name="simulationStrategy" value="both">
+                            <span class="ml-2 text-gray-700">Both</span>
+                        </label>
+                    </div>
+                </div>
+
+                <input type="number" id="simulationCount" placeholder="Number of simulations" value="1000" min="1" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-lg">
+                <button id="runSimulationButton" class="w-full px-8 py-4 bg-purple-700 text-white font-semibold rounded-lg shadow-lg hover:bg-purple-800 transition duration-300 transform hover:scale-105">
+                    Run Simulation
+                </button>
+                <button id="stopSimulationButton" class="w-full px-8 py-4 bg-amber-500 text-white font-semibold rounded-lg shadow-lg hover:bg-amber-600 transition duration-300 transform hover:scale-105 hidden">
+                    Stop Simulation
+                </button>
+                <button id="clearResultsButton" class="w-full px-8 py-4 bg-red-600 text-white font-semibold rounded-lg shadow-lg hover:bg-red-700 transition duration-300 transform hover:scale-105 mt-2">
+                    Clear All Results
+                </button>
+            </div>
+            <!-- Reset Current Game Button (moved to bottom) -->
+            <div class="flex flex-wrap justify-center gap-4 mt-8">
+                <button id="resetButton" class="px-8 py-4 bg-gray-600 text-white font-semibold rounded-lg shadow-lg hover:bg-gray-700 transition duration-300 transform hover:scale-105">
+                    Reset Current Game
+                </button>
+            </div>
+        </div>
+
+        <!-- Simulation Results and Charts Section (right side on larger screens) -->
+        <div class="charts-section flex flex-col gap-6 p-6 md:p-8 rounded-lg bg-gray-50 shadow-inner">
+            <h2 class="text-3xl font-bold text-gray-900 text-center mb-4">Simulation Results</h2>
+
+            <!-- Stay Strategy Results Display -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Stay Strategy</h3>
+                <p class="text-gray-700 text-lg">Wins: <span id="stayWins" class="font-bold text-green-600">0</span></p>
+                <p class="text-gray-700 text-lg">Losses: <span id="stayLosses" class="font-bold text-red-600">0</span></p>
+                <p class="text-gray-700 text-lg font-bold mt-2">Win Rate: <span id="stayWinRate" class="text-blue-700">0.00%</span></p>
+                <div class="chart-container mt-4">
+                    <canvas id="stayChart"></canvas> <!-- Canvas for Stay strategy pie chart -->
+                </div>
+            </div>
+
+            <!-- Switch Strategy Results Display -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Switch Strategy</h3>
+                <p class="text-gray-700 text-lg">Wins: <span id="switchWins" class="font-bold text-green-600">0</span></p>
+                <p class="text-gray-700 text-lg">Losses: <span id="switchLosses" class="font-bold text-red-600">0</span></p>
+                <p class="text-gray-700 text-lg font-bold mt-2">Win Rate: <span id="switchWinRate" class="text-blue-700">0.00%</span></p>
+                <div class="chart-container mt-4">
+                    <canvas id="switchChart"></canvas> <!-- Canvas for Switch strategy pie chart -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Core Functions (defined early for hoisting) ---
+        // Utility function to introduce a delay.
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Starts the Tone.js AudioContext if it hasn't been started yet.
+        function startAudioContext() {
+            if (!audioContextStarted) {
+                Tone.start().then(() => {
+                    console.log("AudioContext started successfully!");
+                    audioContextStarted = true;
+                }).catch(e => {
+                    console.error("Failed to start AudioContext:", e);
+                });
+            }
+        }
+
+        // Function to check if sounds should be played (not in instant simulation mode)
+        function shouldPlaySound() {
+            const selectedSpeed = document.querySelector('input[name="simulationSpeed"]:checked').value;
+            // Play sounds in manual mode OR if it's a visual (fast) simulation
+            return !isSimulating || selectedSpeed === 'fast';
+        }
+
+        // Sound Functions
+        function playPickSound() {
+            if (audioContextStarted && shouldPlaySound()) {
+                pickSynth.triggerAttackRelease("C5", "8n", Tone.now() + 0.001);
+            }
+        }
+
+        function playGoatSound() {
+            if (audioContextStarted && shouldPlaySound()) {
+                goatSynth.triggerAttackRelease("A3", "0.7s", Tone.now() + 0.001);
+            }
+        }
+
+        function playWinSound() {
+            if (audioContextStarted && shouldPlaySound()) {
+                winSynth.triggerAttackRelease(["C5", "E5", "G5"], "0.5s", Tone.now() + 0.001);
+            }
+        }
+
+        function playLoseSound() {
+            if (audioContextStarted && shouldPlaySound()) {
+                loseSynth.triggerAttackRelease("C0", "0.3s", Tone.now() + 0.001);
+            }
+        }
+
+        function playButtonClickSound() {
+            if (audioContextStarted && shouldPlaySound()) {
+                buttonClickSynth.triggerAttackRelease("C4", "16n", Tone.now() + 0.001);
+            }
+        }
+
+        // Initializes the game environment when the page loads.
+        function setupGame() {
+            for (let i = 0; i < 3; i++) {
+                const doorDiv = document.createElement('div');
+                doorDiv.className = 'door bg-amber-100 p-8 rounded-lg shadow-md cursor-pointer text-center font-bold text-3xl transition-colors duration-200 hover:bg-amber-200 transform hover:scale-105 flex-1';
+                doorDiv.id = `door-${i}`;
+                doorDiv.textContent = `Door ${i + 1}`;
+                doorDiv.addEventListener('click', () => handleDoorClick(i));
+                doorsContainer.appendChild(doorDiv);
+                doorElements.push(doorDiv);
+            }
+
+            const stayCtx = document.getElementById('stayChart').getContext('2d');
+            stayChart = new Chart(stayCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Wins', 'Losses'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#16A34A', '#DC2626'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Stay Strategy Results', font: { size: 18 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                    const percentage = total === 0 ? 0 : ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const switchCtx = document.getElementById('switchChart').getContext('2d');
+            switchChart = new Chart(switchCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Wins', 'Losses'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#16A34A', '#DC2626'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Switch Strategy Results', font: { size: 18 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                    const percentage = total === 0 ? 0 : ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            gameState = GAME_STATE.IDLE;
+            updateDoorsUI();
+            updateSimulationResults();
+            displayMessage("Pick a door to start!", 'info');
+        }
+
+        // Resets the visual and logical state for a single manual game round.
+        function resetManualGameRound(isVisualSimulation = false) {
+            doors = [false, false, false];
+            carDoor = Math.floor(Math.random() * 3);
+            doors[carDoor] = true;
+
+            pickedDoor = -1;
+            openedGoatDoor = -1;
+            finalChosenDoor = -1;
+
+            gameState = GAME_STATE.PICK_INITIAL;
+
+            if (!isSimulating) {
+                runSimulationButton.disabled = false;
+                resetButton.disabled = false;
+                clearResultsButton.disabled = false;
+                simulationCountInput.disabled = false;
+                simulationSpeedRadios.forEach(radio => radio.disabled = false);
+                simulationStrategyRadios.forEach(radio => radio.disabled = false);
+                stopSimulationButton.classList.add('hidden');
+            }
+
+            updateDoorsUI();
+            if (!isVisualSimulation) {
+                displayMessage("Pick a door!", 'info');
+            }
+        }
+
+        // Performs a complete reset of the entire application.
+        function fullAppReset() {
+            stayWins = 0;
+            stayLosses = 0;
+            switchWins = 0;
+            switchLosses = 0;
+            totalSimulations = 0;
+            updateCharts();
+            updateSimulationResults();
+
+            doors = [];
+            carDoor = -1;
+            pickedDoor = -1;
+            openedGoatDoor = -1;
+            finalChosenDoor = -1;
+
+            gameState = GAME_STATE.IDLE;
+            updateDoorsUI();
+            displayMessage("Pick a door to start!", 'info');
+
+            isSimulating = false;
+            runSimulationButton.disabled = false;
+            resetButton.disabled = false;
+            clearResultsButton.disabled = false;
+            simulationCountInput.disabled = false;
+            simulationSpeedRadios.forEach(radio => radio.disabled = false);
+            simulationStrategyRadios.forEach(radio => radio.disabled = false);
+            stopSimulationButton.classList.add('hidden');
+        }
+
+        // Updates the visual appearance of the door elements in the UI.
+        function updateDoorsUI() {
+            doorElements.forEach((door, index) => {
+                if (gameState !== GAME_STATE.GAME_OVER && index !== openedGoatDoor) {
+                     door.textContent = `Door ${index + 1}`;
+                }
+
+                door.classList.remove('bg-blue-500', 'bg-rose-400', 'bg-lime-400', 'cursor-not-allowed', 'border-4', 'border-blue-700', 'border-rose-700', 'border-lime-700');
+                door.classList.add('bg-amber-100', 'cursor-pointer', 'hover:bg-amber-200', 'hover:scale-105');
+
+                if (isSimulating || gameState === GAME_STATE.IDLE || gameState === GAME_STATE.GAME_OVER) {
+                    door.classList.add('cursor-not-allowed');
+                    door.classList.remove('cursor-pointer', 'hover:bg-amber-200', 'hover:scale-105');
+                }
+
+                if (index === pickedDoor && gameState !== GAME_STATE.GAME_OVER) {
+                    door.classList.add('bg-blue-500');
+                    door.classList.remove('bg-amber-100');
+                }
+
+                if (index === openedGoatDoor) {
+                    door.textContent = '🐐';
+                    door.classList.add('bg-rose-400');
+                    door.classList.remove('bg-amber-100', 'cursor-pointer', 'hover:bg-amber-200', 'hover:scale-105');
+                }
+
+                if (gameState === GAME_STATE.GAME_OVER) {
+                    door.classList.add('cursor-not-allowed');
+                    door.classList.remove('cursor-pointer', 'hover:bg-amber-200', 'hover:scale-105');
+                    if (doors[index]) {
+                        door.textContent = '🚗';
+                        door.classList.add('bg-lime-400');
+                        door.classList.remove('bg-amber-100');
+                    } else if (index !== openedGoatDoor) {
+                         door.textContent = '🐐';
+                         door.classList.add('bg-rose-400');
+                         door.classList.remove('bg-amber-100');
+                    }
+
+                    if (index === finalChosenDoor) {
+                        if (doors[finalChosenDoor]) {
+                            door.classList.add('border-4', 'border-lime-700');
+                        } else {
+                            door.classList.add('border-4', 'border-rose-700');
+                        }
+                    }
+                }
+            });
+        }
+
+        // Displays a message to the user in the 'messageDisplay' area.
+        function displayMessage(msg, type = 'info') {
+            messageDisplay.textContent = msg;
+            messageDisplay.classList.remove('text-blue-700', 'text-green-600', 'text-red-600');
+            if (type === 'info') messageDisplay.classList.add('text-blue-700');
+            else if (type === 'win') messageDisplay.classList.add('text-green-600');
+            else if (type === 'loss' || type === 'error') messageDisplay.classList.add('text-red-600');
+        }
+
+        // Handles a click event on one of the doors during manual play.
+        function handleDoorClick(doorIndex) {
+            startAudioContext();
+
+            if (isSimulating) {
+                return;
+            }
+
+            if (gameState === GAME_STATE.IDLE || gameState === GAME_STATE.GAME_OVER) {
+                resetManualGameRound();
+                displayMessage("Now, pick a door to make your initial choice!", 'info');
+                return;
+            }
+            else if (gameState === GAME_STATE.PICK_INITIAL) {
+                pickedDoor = doorIndex;
+                playPickSound();
+                displayMessage(`You picked Door ${pickedDoor + 1}.`, 'info');
+                openGoatDoor();
+                gameState = GAME_STATE.PICK_SWITCH_OR_STAY;
+                updateDoorsUI();
+                displayMessage("Now, click your initial door to STAY, or the other unopened door to SWITCH.", 'info');
+            }
+            else if (gameState === GAME_STATE.PICK_SWITCH_OR_STAY) {
+                if (doorIndex === pickedDoor) {
+                    makeFinalDecision('stay');
+                }
+                else if (doorIndex !== openedGoatDoor && doorIndex !== pickedDoor) {
+                    makeFinalDecision('switch');
+                }
+                else {
+                    displayMessage("You cannot pick the opened goat door. Click your initial door to STAY, or the other unopened door to SWITCH.", 'info');
+                }
+            }
+        }
+
+        // Monty opens one of the goat doors that was NOT initially picked by the player.
+        function openGoatDoor() {
+            let potentialGoatDoors = [];
+            for (let i = 0; i < 3; i++) {
+                if (i !== pickedDoor && !doors[i]) {
+                    potentialGoatDoors.push(i); // Corrected typo here from potentialGoMays to potentialGoatDoors
+                }
+            }
+            openedGoatDoor = potentialGoatDoors[Math.floor(Math.random() * potentialGoatDoors.length)];
+            playGoatSound();
+        }
+
+        // Finalizes the current game round based on the player's chosen strategy.
+        function makeFinalDecision(strategy, isSimulation = false) {
+            if (strategy === 'stay') {
+                finalChosenDoor = pickedDoor;
+            } else if (strategy === 'switch') {
+                for (let i = 0; i < 3; i++) {
+                    if (i !== pickedDoor && i !== openedGoatDoor) {
+                        finalChosenDoor = i;
+                        break;
+                    }
+                }
+            }
+
+            const isWin = doors[finalChosenDoor];
+
+            if (strategy === 'stay') {
+                if (isWin) {
+                    stayWins++;
+                    if (!isSimulation) {
+                        displayMessage(`You stayed and WON! The car was behind Door ${finalChosenDoor + 1}. 🎉`, 'win');
+                        playWinSound();
+                    }
+                } else {
+                    stayLosses++;
+                    if (!isSimulation) {
+                        displayMessage(`You stayed and LOST! The car was behind Door ${carDoor + 1}. 🙁`, 'loss');
+                        playLoseSound();
+                    }
+                }
+            } else if (strategy === 'switch') {
+                if (isWin) {
+                    switchWins++;
+                    if (!isSimulation) {
+                        displayMessage(`You switched and WON! The car was behind Door ${finalChosenDoor + 1}. 🏆`, 'win');
+                        playWinSound();
+                    }
+                } else {
+                    switchLosses++;
+                    if (!isSimulation) {
+                        displayMessage(`You switched and LOST! The car was behind Door ${carDoor + 1}. 😩`, 'loss');
+                        playLoseSound();
+                    }
+                }
+            }
+
+            gameState = GAME_STATE.GAME_OVER;
+            updateDoorsUI();
+            updateCharts();
+            updateSimulationResults();
+        }
+
+        // Simulates a single round of the Monty Hall problem.
+        async function runSingleVisualSimulation(strategy, currentSimSpeedMs) {
+            resetManualGameRound(true);
+            if (currentSimSpeedMs > 0) await delay(currentSimSpeedMs);
+
+            pickedDoor = Math.floor(Math.random() * 3);
+            if (currentSimSpeedMs > 0) {
+                displayMessage(`Simulation: Picking Door ${pickedDoor + 1}...`, 'info');
+                updateDoorsUI();
+                playPickSound();
+                await delay(currentSimSpeedMs);
+            }
+
+            openGoatDoor();
+            if (currentSimSpeedMs > 0) {
+                displayMessage(`Simulation: Monty opens Door ${openedGoatDoor + 1}...`, 'info');
+                updateDoorsUI();
+                await delay(currentSimSpeedMs);
+            }
+
+            let currentFinalChosenDoor = -1;
+            if (strategy === 'stay') {
+                currentFinalChosenDoor = pickedDoor;
+                if (currentSimSpeedMs > 0) displayMessage(`Simulation: Deciding to STAY...`, 'info');
+            } else {
+                for (let i = 0; i < 3; i++) {
+                    if (i !== pickedDoor && i !== openedGoatDoor) {
+                        currentFinalChosenDoor = i;
+                        break;
+                    }
+                }
+                if (currentSimSpeedMs > 0) displayMessage(`Simulation: Deciding to SWITCH to Door ${currentFinalChosenDoor + 1}...`, 'info');
+            }
+            finalChosenDoor = currentFinalChosenDoor;
+
+            const isWin = doors[finalChosenDoor];
+
+            if (strategy === 'stay') {
+                if (isWin) stayWins++; else stayLosses++;
+            } else if (strategy === 'switch') {
+                if (isWin) switchWins++; else switchLosses++;
+            }
+
+            if (currentSimSpeedMs > 0) {
+                displayMessage(`Simulation: Result - ${isWin ? 'WIN!' : 'LOSS!'}`, isWin ? 'win' : 'loss');
+                if (isWin) playWinSound(); else playLoseSound();
+                gameState = GAME_STATE.GAME_OVER;
+                updateDoorsUI();
+                await delay(currentSimSpeedMs * 2);
+            }
+
+            return isWin;
+        }
+
+
+        // Runs a specified number of automated Monty Hall problem simulations.
+        async function runSimulation() {
+            startAudioContext();
+
+            const numSimulations = parseInt(simulationCountInput.value, 10);
+            const selectedSpeed = document.querySelector('input[name="simulationSpeed"]:checked').value;
+            const currentSimSpeedMs = selectedSpeed === 'fast' ? 200 : 0;
+            const selectedStrategy = document.querySelector('input[name="simulationStrategy"]:checked').value;
+
+            if (isNaN(numSimulations) || numSimulations <= 0) {
+                displayMessage("Please enter a valid number of simulations (greater than 0).", 'error');
+                return;
+            }
+
+            isSimulating = true;
+            runSimulationButton.disabled = true;
+            resetButton.disabled = true;
+            clearResultsButton.disabled = true;
+            simulationCountInput.disabled = true;
+            simulationSpeedRadios.forEach(radio => radio.disabled = true);
+            simulationStrategyRadios.forEach(radio => radio.disabled = true);
+            stopSimulationButton.classList.remove('hidden');
+            playButtonClickSound();
+
+
+            displayMessage(`Running ${numSimulations} simulations with '${selectedSpeed}' speed for '${selectedStrategy}' strategy...`, 'info');
+
+            gameState = GAME_STATE.IDLE;
+            updateDoorsUI();
+            await delay(100);
+
+            for (let i = 0; i < numSimulations; i++) {
+                if (!isSimulating) {
+                    break;
+                }
+
+                totalSimulations++;
+
+                if (selectedStrategy === 'stay' || selectedStrategy === 'both') {
+                    await runSingleVisualSimulation('stay', currentSimSpeedMs);
+                    if (!isSimulating) break;
+                }
+                if (selectedStrategy === 'switch' || selectedStrategy === 'both') {
+                    await runSingleVisualSimulation('switch', currentSimSpeedMs);
+                    if (!isSimulating) break;
+                }
+
+                updateCharts();
+                updateSimulationResults();
+
+                if (currentSimSpeedMs === 0) {
+                    if ((i + 1) % Math.max(1, Math.floor(numSimulations / 100)) === 0 || i === numSimulations -1) {
+                         displayMessage(`Running ${i + 1} of ${numSimulations} simulations...`, 'info');
+                    }
+                }
+            }
+
+            if (isSimulating) {
+                displayMessage(`Simulation complete! Ran ${numSimulations} games.`, 'info');
+            } else {
+                displayMessage("Simulation stopped.", 'info');
+            }
+
+            gameState = GAME_STATE.IDLE;
+            updateDoorsUI();
+
+            isSimulating = false;
+            runSimulationButton.disabled = false;
+            resetButton.disabled = false;
+            clearResultsButton.disabled = false;
+            simulationCountInput.disabled = false;
+            simulationSpeedRadios.forEach(radio => radio.disabled = false);
+            simulationStrategyRadios.forEach(radio => radio.disabled = false);
+            stopSimulationButton.classList.add('hidden');
+        }
+
+        // Stops the currently running simulation.
+        function stopSimulation() {
+            startAudioContext();
+            playButtonClickSound();
+            isSimulating = false;
+        }
+
+        // Updates the data within the Chart.js pie charts and redraws them.
+        function updateCharts() {
+            stayChart.data.datasets[0].data = [stayWins, stayLosses];
+            stayChart.update();
+
+            switchChart.data.datasets[0].data = [switchWins, switchLosses];
+            switchChart.update();
+        }
+
+        // Updates the numerical display of wins, losses, and calculated win rates.
+        function updateSimulationResults() {
+            stayWinsDisplay.textContent = stayWins;
+            stayLossesDisplay.textContent = stayLosses;
+            const totalStayGames = stayWins + stayLosses;
+            stayWinRateDisplay.textContent = totalStayGames > 0 ? `${((stayWins / totalStayGames) * 100).toFixed(2)}%` : '0.00%';
+
+            switchWinsDisplay.textContent = switchWins;
+            switchLossesDisplay.textContent = switchLosses;
+            const totalSwitchGames = switchWins + switchLosses;
+            switchWinRateDisplay.textContent = totalSwitchGames > 0 ? `${((switchWins / totalSwitchGames) * 100).toFixed(2)}%` : '0.00%';
+        }
+
+        // Resets all accumulated simulation results to zero.
+        function clearSimulationResults() {
+            startAudioContext();
+            playButtonClickSound();
+            stayWins = 0;
+            stayLosses = 0;
+            switchWins = 0;
+            switchLosses = 0;
+            totalSimulations = 0;
+            updateCharts();
+            updateSimulationResults();
+            displayMessage("All simulation results cleared.", 'info');
+        }
+
+
+        // --- Global Variables ---
+        // Moved below core functions as per new structure for clearer scope.
+        let doors = [];
+        let carDoor = -1;
+        let pickedDoor = -1;
+        let openedGoatDoor = -1;
+        let finalChosenDoor = -1;
+
+        const GAME_STATE = {
+            IDLE: 'idle',
+            PICK_INITIAL: 'pick_initial',
+            PICK_SWITCH_OR_STAY: 'pick_switch_or_stay',
+            GAME_OVER: 'game_over'
+        };
+        let gameState = GAME_STATE.IDLE;
+
+        let isSimulating = false;
+
+        let stayWins = 0;
+        let stayLosses = 0;
+        let switchWins = 0;
+        let switchLosses = 0;
+        let totalSimulations = 0;
+
+        let stayChart;
+        let switchChart;
+
+        const doorElements = [];
+
+        // --- DOM Element References ---
+        const doorsContainer = document.getElementById('doorsContainer');
+        const messageDisplay = document.getElementById('messageDisplay');
+        const resetButton = document.getElementById('resetButton');
+        const simulationCountInput = document.getElementById('simulationCount');
+        const runSimulationButton = document.getElementById('runSimulationButton');
+        const stopSimulationButton = document.getElementById('stopSimulationButton');
+        const clearResultsButton = document.getElementById('clearResultsButton');
+
+        const simulationSpeedRadios = document.querySelectorAll('input[name="simulationSpeed"]');
+        const simulationStrategyRadios = document.querySelectorAll('input[name="simulationStrategy"]');
+
+        const stayWinsDisplay = document.getElementById('stayWins');
+        const stayLossesDisplay = document.getElementById('stayLosses');
+        const stayWinRateDisplay = document.getElementById('stayWinRate');
+        const switchWinsDisplay = document.getElementById('switchWins');
+        const switchLossesDisplay = document.getElementById('switchLosses');
+        const switchWinRateDisplay = document.getElementById('switchWinRate');
+
+        // --- Tone.js Synth Initializations ---
+        let audioContextStarted = false;
+
+        let pickSynth = new Tone.Synth({
+            oscillator: { type: "triangle" },
+            envelope: { attack: 0.01, decay: 0.1, sustain: 0.05, release: 0.1 }
+        }).toDestination();
+
+        let goatSynth = new Tone.FMSynth({
+            harmonicity: 0.8, modulationIndex: 1.5, oscillator: { type: "sine" },
+            envelope: { attack: 0.1, decay: 0.3, sustain: 0.1, release: 0.5 },
+            modulation: { type: "sine" }, modulationEnvelope: { attack: 0.1, decay: 0.3, sustain: 0, release: 0.5 }
+        }).toDestination();
+
+        let winSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.02, decay: 0.2, sustain: 0.1, release: 0.5 }
+        }).toDestination();
+
+        const autoWah = new Tone.AutoWah({
+            baseFrequency: 50, octaves: 7, sensitivity: 0.6, Q: 2, gain: 12,
+            follower: { attack: 0.05, release: 0.15 }
+        }).toDestination();
+
+        let loseSynth = new Tone.Synth({
+            oscillator: { type: "square" },
+            envelope: { attack: 0.01, decay: 0.08, sustain: 0.01, release: 0.1 }
+        }).connect(autoWah);
+
+        let buttonClickSynth = new Tone.PluckSynth({
+            attackNoise: 1, dampening: 4000, resonance: 0.9
+        }).toDestination();
+
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupGame();
+
+            resetButton.addEventListener('click', () => {
+                startAudioContext();
+                playButtonClickSound();
+                fullAppReset();
+            });
+
+            runSimulationButton.addEventListener('click', runSimulation);
+
+            stopSimulationButton.addEventListener('click', stopSimulation);
+
+            // Corrected typo here
+            clearResultsButton.addEventListener('click', clearSimulationResults);
+        });
+    </script>
+</body>
+</html>
