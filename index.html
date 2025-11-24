@@ -43,14 +43,14 @@
         .door { 
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             width: 30%;           /* Fluid width */
-            max-width: 140px;     /* Cap width on large screens */
+            max-width: 160px;     /* Slightly larger cap */
             aspect-ratio: 2/3;    /* Maintain shape regardless of width */
             min-width: 0;         /* Allow shrinking on tiny screens */
         }
 
         /* 3D effect for doors */
         .door-inner { box-shadow: inset 0 -4px 0 rgba(0,0,0,0.1); }
-        .chart-container { position: relative; height: 250px; width: 100%; }
+        .chart-container { position: relative; height: 220px; width: 100%; }
         
         /* Custom scrollbar for better aesthetics */
         ::-webkit-scrollbar { width: 8px; }
@@ -90,7 +90,7 @@
                 <span id="themeIcon">🌙</span>
             </button>
             <!-- Music Toggle -->
-            <button id="musicButton" class="p-2 rounded-full hover:bg-gray-700 bg-gray-700 text-gray-400 transition focus:outline-none" title="Toggle Music">
+            <button id="musicButton" class="p-2 rounded-full hover:bg-gray-700 bg-blue-600 text-white transition focus:outline-none" title="Toggle Music">
                 <span id="musicIcon">🎵</span>
             </button>
             <!-- SFX Toggle -->
@@ -103,84 +103,85 @@
     <!-- Main Layout -->
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
         
-        <!-- Left: Game Arena -->
-        <section id="gameArena" class="flex-1 flex flex-col bg-gray-100 dark:bg-gray-850 relative overflow-y-auto transition-colors duration-300 cursor-default">
-            <div class="flex-1 flex flex-col items-center justify-center p-4 md:p-6 min-h-[400px]">
-                
+        <!-- Left Column: Game Arena + Controls -->
+        <section class="flex-1 flex flex-col bg-gray-100 dark:bg-gray-850 relative overflow-hidden transition-colors duration-300 border-r border-gray-300 dark:border-gray-700">
+            
+            <!-- Game Arena (Top, Grows to fill space) -->
+            <div id="gameArena" class="flex-1 flex flex-col items-center justify-center p-4 min-h-[300px] cursor-default overflow-y-auto">
                 <!-- Feedback Message -->
-                <div id="messageDisplay" class="text-lg md:text-2xl font-bold text-center mb-8 min-h-[3rem] text-blue-800 dark:text-blue-300 transition-colors px-2">
+                <div id="messageDisplay" class="text-lg md:text-2xl font-bold text-center mb-6 min-h-[3rem] text-blue-800 dark:text-blue-300 transition-colors px-2">
                     Pick a door to start!
                 </div>
 
                 <!-- Doors -->
-                <div id="doorsContainer" class="flex justify-center gap-3 md:gap-8 w-full max-w-2xl mb-10 px-2">
+                <div id="doorsContainer" class="flex justify-center gap-4 md:gap-8 w-full max-w-3xl px-2">
                     <!-- Doors injected here -->
                 </div>
+            </div>
 
-                <!-- Manual Controls -->
-                <div class="flex gap-4 mb-4">
-                    <button id="resetButton" class="px-6 py-3 bg-gray-800 dark:bg-gray-700 text-white font-semibold rounded-lg shadow hover:bg-gray-700 dark:hover:bg-gray-600 hover:-translate-y-0.5 transition border border-transparent dark:border-gray-600">
-                        Reset Game
-                    </button>
+            <!-- Controls (Bottom, Fixed Height) -->
+            <div class="p-6 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 transition-colors duration-300 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+                <div class="max-w-4xl mx-auto flex flex-col md:flex-row gap-6 items-center justify-between">
+                    
+                    <!-- Speed & Strategy Group -->
+                    <div class="flex flex-col sm:flex-row gap-6 w-full md:w-auto">
+                        <!-- Speed -->
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Speed</label>
+                            <div class="flex bg-gray-200 dark:bg-gray-700 rounded p-1 transition-colors">
+                                <label class="flex-1 text-center cursor-pointer px-2">
+                                    <input type="radio" name="simulationSpeed" value="instant" checked class="peer sr-only">
+                                    <span class="block py-1 px-3 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-600 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 peer-checked:shadow transition">Instant</span>
+                                </label>
+                                <label class="flex-1 text-center cursor-pointer px-2">
+                                    <input type="radio" name="simulationSpeed" value="fast" class="peer sr-only">
+                                    <span class="block py-1 px-3 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-600 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 peer-checked:shadow transition">Visual</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Strategy -->
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Strategy</label>
+                            <div class="flex bg-gray-200 dark:bg-gray-700 rounded p-1 transition-colors">
+                                <label class="flex-1 text-center cursor-pointer px-1">
+                                    <input type="radio" name="simulationStrategy" value="stay" class="peer sr-only">
+                                    <span class="block py-1 px-2 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-600 peer-checked:text-green-600 dark:peer-checked:text-green-400 peer-checked:shadow transition">Stay</span>
+                                </label>
+                                <label class="flex-1 text-center cursor-pointer px-1">
+                                    <input type="radio" name="simulationStrategy" value="switch" class="peer sr-only">
+                                    <span class="block py-1 px-2 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-600 peer-checked:text-purple-600 dark:peer-checked:text-purple-400 peer-checked:shadow transition">Switch</span>
+                                </label>
+                                <label class="flex-1 text-center cursor-pointer px-1">
+                                    <input type="radio" name="simulationStrategy" value="both" checked class="peer sr-only">
+                                    <span class="block py-1 px-2 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-600 peer-checked:text-orange-600 dark:peer-checked:text-orange-400 peer-checked:shadow transition">Both</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Run Actions -->
+                    <div class="flex flex-col w-full md:w-auto min-w-[200px] gap-2">
+                        <div class="flex gap-2">
+                            <input type="number" id="simulationCount" value="1000" min="1" max="100000" class="w-24 p-2 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white rounded text-center font-mono focus:ring-2 focus:ring-blue-500 outline-none" placeholder="N">
+                            <button id="runSimulationButton" class="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold rounded shadow transition px-4">Run Sim</button>
+                            <button id="stopSimulationButton" class="hidden flex-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded shadow transition px-4">Stop</button>
+                        </div>
+                        <button id="clearResultsButton" class="w-full text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 underline text-right pr-1">Clear Data</button>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Right: Simulation & Stats Panel -->
-        <aside class="w-full md:w-[400px] lg:w-[450px] bg-white dark:bg-gray-800 border-t md:border-t-0 md:border-l border-gray-300 dark:border-gray-700 flex flex-col shadow-2xl z-20 overflow-y-auto transition-colors duration-300 shrink-0">
+        <!-- Right Column: Stats & Charts -->
+        <aside class="w-full md:w-[380px] lg:w-[420px] bg-white dark:bg-gray-800 border-t md:border-t-0 border-gray-300 dark:border-gray-700 flex flex-col shadow-xl z-20 overflow-y-auto transition-colors duration-300 shrink-0">
             
-            <!-- Controls -->
-            <div class="p-6 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
-                <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <span>⚙️</span> Simulation Controls
+            <div class="p-6 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <span>📊</span> Results
                 </h3>
-                
-                <div class="space-y-4">
-                    <!-- Speed -->
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Speed</label>
-                        <div class="flex bg-gray-200 dark:bg-gray-600 rounded p-1 transition-colors">
-                            <label class="flex-1 text-center cursor-pointer">
-                                <input type="radio" name="simulationSpeed" value="instant" checked class="peer sr-only">
-                                <span class="block py-1 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-800 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 peer-checked:shadow transition">Instant</span>
-                            </label>
-                            <label class="flex-1 text-center cursor-pointer">
-                                <input type="radio" name="simulationSpeed" value="fast" class="peer sr-only">
-                                <span class="block py-1 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-800 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 peer-checked:shadow transition">Visual</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Strategy -->
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Strategy</label>
-                        <div class="flex bg-gray-200 dark:bg-gray-600 rounded p-1 transition-colors">
-                            <label class="flex-1 text-center cursor-pointer">
-                                <input type="radio" name="simulationStrategy" value="stay" class="peer sr-only">
-                                <span class="block py-1 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-800 peer-checked:text-green-600 dark:peer-checked:text-green-400 peer-checked:shadow transition">Stay</span>
-                            </label>
-                            <label class="flex-1 text-center cursor-pointer">
-                                <input type="radio" name="simulationStrategy" value="switch" class="peer sr-only">
-                                <span class="block py-1 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-800 peer-checked:text-purple-600 dark:peer-checked:text-purple-400 peer-checked:shadow transition">Switch</span>
-                            </label>
-                            <label class="flex-1 text-center cursor-pointer">
-                                <input type="radio" name="simulationStrategy" value="both" checked class="peer sr-only">
-                                <span class="block py-1 rounded text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:bg-white dark:peer-checked:bg-gray-800 peer-checked:text-orange-600 dark:peer-checked:text-orange-400 peer-checked:shadow transition">Both</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Count & Run -->
-                    <div class="flex gap-2">
-                        <input type="number" id="simulationCount" value="1000" min="1" max="100000" class="w-1/3 p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded text-center font-mono" placeholder="N">
-                        <button id="runSimulationButton" class="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold rounded shadow transition">Run Sim</button>
-                        <button id="stopSimulationButton" class="hidden flex-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded shadow transition">Stop</button>
-                    </div>
-                     <button id="clearResultsButton" class="w-full text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 underline mt-1">Clear Data</button>
-                </div>
             </div>
 
-            <!-- Stats -->
             <div class="flex-1 p-6 space-y-6">
                 <!-- Stay Card -->
                 <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-800/30">
@@ -192,7 +193,7 @@
                          <span>Wins: <b id="stayWins" class="text-gray-900 dark:text-gray-200">0</b></span>
                          <span>Losses: <b id="stayLosses" class="text-gray-900 dark:text-gray-200">0</b></span>
                     </div>
-                    <div class="chart-container h-32">
+                    <div class="chart-container">
                         <canvas id="stayChart"></canvas>
                     </div>
                 </div>
@@ -207,7 +208,7 @@
                          <span>Wins: <b id="switchWins" class="text-gray-900 dark:text-gray-200">0</b></span>
                          <span>Losses: <b id="switchLosses" class="text-gray-900 dark:text-gray-200">0</b></span>
                     </div>
-                    <div class="chart-container h-32">
+                    <div class="chart-container">
                         <canvas id="switchChart"></canvas>
                     </div>
                 </div>
@@ -216,7 +217,8 @@
     </main>
 
     <!-- Hidden audio element for looping music -->
-    <audio id="bgMusic" src="audio/ambient-piano-x-relaxing-prod-by-blackpybeats-109400.mp3" loop preload="auto"></audio>
+    <!-- Added onerror handler to log issues with loading the file -->
+    <audio id="bgMusic" src="audio/ambient-piano-x-relaxing-prod-by-blackpybeats-109400.mp3" loop preload="auto" onerror="console.warn('Audio file failed to load. Check path.')"></audio>
 
     <script>
         // --- State Management ---
@@ -227,7 +229,7 @@
             stats: { stay: { wins: 0, losses: 0 }, switch: { wins: 0, losses: 0 } },
             isSimulating: false,
             isMuted: false, // SFX Mute
-            isMusicOn: false, // Background Music state
+            isMusicOn: true, // Background Music state (Default ON)
             isDark: false,
             audioReady: false
         };
@@ -250,7 +252,6 @@
                 run: document.getElementById('runSimulationButton'),
                 stop: document.getElementById('stopSimulationButton'),
                 clear: document.getElementById('clearResultsButton'),
-                reset: document.getElementById('resetButton'),
                 mute: document.getElementById('muteButton'),
                 muteIcon: document.getElementById('muteIcon'),
                 music: document.getElementById('musicButton'),
@@ -338,23 +339,26 @@
                 if (state.isMusicOn) {
                     els.audio.volume = 1.0; // 100% Volume
                     els.audio.play().catch(e => {
-                        console.log("Music play failed (user interaction needed):", e);
+                        console.log("Music play failed (user interaction needed or file missing):", e);
                         state.isMusicOn = false; // Reset if failed
+                        updateMusicUI();
                     });
                 } else {
                     els.audio.pause();
                 }
-
-                // Update UI
-                if (state.isMusicOn) {
-                    els.btns.music.classList.remove('bg-gray-700', 'text-gray-400');
-                    els.btns.music.classList.add('bg-blue-600', 'text-white');
-                } else {
-                    els.btns.music.classList.add('bg-gray-700', 'text-gray-400');
-                    els.btns.music.classList.remove('bg-blue-600', 'text-white');
-                }
+                updateMusicUI();
             }
         };
+
+        function updateMusicUI() {
+             if (state.isMusicOn) {
+                els.btns.music.classList.remove('bg-gray-700', 'text-gray-400');
+                els.btns.music.classList.add('bg-blue-600', 'text-white');
+            } else {
+                els.btns.music.classList.add('bg-gray-700', 'text-gray-400');
+                els.btns.music.classList.remove('bg-blue-600', 'text-white');
+            }
+        }
 
         // --- Core Logic ---
         
@@ -381,10 +385,12 @@
             els.arena.onclick = (e) => {
                 // If game is OVER and we aren't simulating
                 if (state.gameStage === 'OVER' && !state.isSimulating) {
-                    // Ignore clicks on buttons (like Reset button) to avoid double firing
+                    // Ignore clicks on buttons (like Reset button would have been) to avoid double firing
                     if (e.target.closest('button')) return;
                     // Ignore clicks on doors (handled by handleDoorClick)
                     if (e.target.closest('.door')) return;
+                    // Ignore clicks within the control panel div
+                    if (e.target.closest('.shadow-\\[0_-4px_6px_-1px_rgba\\(0\\,0\\,0\\,0\\.1\\)\\]')) return;
                     
                     resetRound();
                     Audio.play('pick');
@@ -725,7 +731,8 @@
         }
 
         // --- Event Listeners ---
-        els.btns.reset.onclick = () => { resetRound(); Audio.play('pick'); };
+        // els.btns.reset.onclick removed (button deleted)
+        
         els.btns.clear.onclick = () => {
             state.stats = { stay: { wins: 0, losses: 0 }, switch: { wins: 0, losses: 0 } };
             updateStatsUI();
@@ -748,6 +755,18 @@
         els.btns.start.onclick = async () => {
             // Unlock audio on click
             await Audio.init();
+            // Start Music if default on
+            if (state.isMusicOn) {
+                els.audio.volume = 1.0;
+                // Add catch here to prevent unhandled rejection
+                els.audio.play().catch(e => {
+                    console.warn("Background music failed to play (file missing?):", e);
+                    // Optionally turn off music state if file fails
+                    state.isMusicOn = false;
+                    updateMusicUI(); 
+                });
+                updateMusicUI();
+            }
             // Hide splash screen
             els.splash.classList.add('animate-fade-out');
         };
