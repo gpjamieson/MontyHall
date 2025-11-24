@@ -17,6 +17,15 @@
                             850: '#1a202c', // Darker background
                             950: '#0d1117', // Almost black
                         }
+                    },
+                    animation: {
+                        'fade-out': 'fadeOut 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeOut: {
+                            '0%': { opacity: '1', visibility: 'visible' },
+                            '100%': { opacity: '0', visibility: 'hidden' },
+                        }
                     }
                 }
             }
@@ -54,6 +63,24 @@
 </head>
 <body class="text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 h-screen flex flex-col overflow-hidden transition-colors duration-300">
 
+    <!-- Splash Screen -->
+    <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-900 text-white transition-opacity duration-500">
+        <div class="text-center space-y-6 p-6 animate-pulse">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-amber-400 tracking-tight">Monty Hall</h1>
+            <h2 class="text-2xl md:text-3xl font-light text-gray-300">Probability Simulator</h2>
+            
+            <div class="pt-8">
+                <button id="startButton" class="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full text-xl shadow-lg transform hover:scale-105 transition-all">
+                    Start Simulation
+                </button>
+            </div>
+            
+            <div class="pt-12 text-gray-500 text-sm font-medium tracking-wider uppercase">
+                Created by Gary Jamieson
+            </div>
+        </div>
+    </div>
+
     <!-- Header / Navbar -->
     <header class="w-full bg-gray-900 dark:bg-gray-950 text-white p-4 flex justify-between items-center shadow-lg z-10 shrink-0">
         <h1 class="text-xl md:text-2xl font-bold tracking-tight text-amber-400">Monty Hall Simulator</h1>
@@ -62,8 +89,12 @@
             <button id="themeButton" class="p-2 rounded-full hover:bg-gray-700 transition focus:outline-none" title="Toggle Dark Mode">
                 <span id="themeIcon">🌙</span>
             </button>
-            <!-- Mute Toggle -->
-            <button id="muteButton" class="p-2 rounded-full hover:bg-gray-700 transition focus:outline-none" title="Toggle Sound">
+            <!-- Music Toggle -->
+            <button id="musicButton" class="p-2 rounded-full hover:bg-gray-700 bg-gray-700 text-gray-400 transition focus:outline-none" title="Toggle Music">
+                <span id="musicIcon">🎵</span>
+            </button>
+            <!-- SFX Toggle -->
+            <button id="muteButton" class="p-2 rounded-full hover:bg-gray-700 transition focus:outline-none" title="Toggle SFX">
                 <span id="muteIcon">🔊</span>
             </button>
         </div>
@@ -184,6 +215,9 @@
         </aside>
     </main>
 
+    <!-- Hidden audio element for looping music -->
+    <audio id="bgMusic" src="ambient-piano-x-relaxing-prod-by-blackpybeats-109400.mp3" loop preload="auto"></audio>
+
     <script>
         // --- State Management ---
         const state = {
@@ -192,7 +226,8 @@
             picks: { initial: -1, goat: -1, final: -1 },
             stats: { stay: { wins: 0, losses: 0 }, switch: { wins: 0, losses: 0 } },
             isSimulating: false,
-            isMuted: false,
+            isMuted: false, // SFX Mute
+            isMusicOn: false, // Background Music state
             isDark: false,
             audioReady: false
         };
@@ -203,6 +238,8 @@
             doors: document.getElementById('doorsContainer'),
             msg: document.getElementById('messageDisplay'),
             charts: { stay: null, switch: null },
+            audio: document.getElementById('bgMusic'),
+            splash: document.getElementById('splashScreen'),
             inputs: {
                 speed: document.getElementsByName('simulationSpeed'),
                 strategy: document.getElementsByName('simulationStrategy'),
@@ -215,8 +252,11 @@
                 reset: document.getElementById('resetButton'),
                 mute: document.getElementById('muteButton'),
                 muteIcon: document.getElementById('muteIcon'),
+                music: document.getElementById('musicButton'),
+                musicIcon: document.getElementById('musicIcon'),
                 theme: document.getElementById('themeButton'),
-                themeIcon: document.getElementById('themeIcon')
+                themeIcon: document.getElementById('themeIcon'),
+                start: document.getElementById('startButton')
             },
             displays: {
                 stayWins: document.getElementById('stayWins'),
@@ -235,17 +275,36 @@
                 if (state.audioReady) return;
                 await Tone.start();
                 
+                // Refined, understated sound design
+                
+                // PICK: Soft "glass" tap (High sine, quick decay)
                 Audio.synths.pick = new Tone.Synth({ 
-                    oscillator: { type: "triangle" }, 
-                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.1 } 
+                    oscillator: { type: "sine" }, 
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0.0, release: 0.1 } 
                 }).toDestination();
                 
-                Audio.synths.goat = new Tone.MembraneSynth().toDestination();
+                // GOAT: Low, dull thud (Membrane, tuned down)
+                Audio.synths.goat = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 2,
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.5 }
+                }).toDestination();
+                Audio.synths.goat.volume.value = -5; // Subtle
                 
-                Audio.synths.win = new Tone.PolySynth(Tone.Synth).toDestination();
-                Audio.synths.win.volume.value = -5;
+                // WIN: Soft Major Chord (PolySynth, Sine, gentle attack)
+                Audio.synths.win = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.05, decay: 0.3, sustain: 0.4, release: 1.5 },
+                    volume: -8
+                }).toDestination();
 
-                Audio.synths.lose = new Tone.PluckSynth({ dampening: 1000 }).toDestination();
+                // LOSE: Soft dissonant low hum or single low note
+                Audio.synths.lose = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.2, decay: 0.5, sustain: 0.2, release: 1.5 },
+                    volume: -5
+                }).toDestination();
                 
                 state.audioReady = true;
                 console.log("Audio Engine Started");
@@ -256,10 +315,42 @@
                 if (state.isSimulating && getSimSpeed() === 'instant') return;
 
                 switch(type) {
-                    case 'pick': Audio.synths.pick.triggerAttackRelease("C5", "8n"); break;
-                    case 'goat': Audio.synths.goat.triggerAttackRelease("A2", "8n"); break;
-                    case 'win': Audio.synths.win.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n"); break;
-                    case 'lose': Audio.synths.lose.triggerAttackRelease("C3", "4n"); break;
+                    case 'pick': 
+                        Audio.synths.pick.triggerAttackRelease("G6", "16n"); 
+                        break;
+                    case 'goat': 
+                        Audio.synths.goat.triggerAttackRelease("C2", "8n"); 
+                        break;
+                    case 'win': 
+                        // Gentle C Major 7
+                        Audio.synths.win.triggerAttackRelease(["C5", "E5", "G5", "B5"], "4n"); 
+                        break;
+                    case 'lose': 
+                        // Subtle low tone
+                        Audio.synths.lose.triggerAttackRelease("C3", "2n"); 
+                        break;
+                }
+            },
+            toggleMusic: () => {
+                state.isMusicOn = !state.isMusicOn;
+                
+                if (state.isMusicOn) {
+                    els.audio.volume = 0.6; // 60% Volume
+                    els.audio.play().catch(e => {
+                        console.log("Music play failed (user interaction needed):", e);
+                        state.isMusicOn = false; // Reset if failed
+                    });
+                } else {
+                    els.audio.pause();
+                }
+
+                // Update UI
+                if (state.isMusicOn) {
+                    els.btns.music.classList.remove('bg-gray-700', 'text-gray-400');
+                    els.btns.music.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    els.btns.music.classList.add('bg-gray-700', 'text-gray-400');
+                    els.btns.music.classList.remove('bg-blue-600', 'text-white');
                 }
             }
         };
@@ -493,11 +584,12 @@
             }
 
             // VISUAL MODE (Slower)
-            // If "Both" selected, we split the count: half stay, half switch
             let runs = [];
             if (strategyMode === 'both') {
-                for(let i=0; i<count/2; i++) runs.push('stay');
-                for(let i=0; i<count/2; i++) runs.push('switch');
+                // Randomly mix 'stay' and 'switch' for visual mode
+                for(let i=0; i<count; i++) {
+                    runs.push(Math.random() < 0.5 ? 'stay' : 'switch');
+                }
             } else {
                 for(let i=0; i<count; i++) runs.push(strategyMode);
             }
@@ -608,8 +700,18 @@
             els.btns.mute.classList.toggle('bg-red-100', state.isMuted);
             els.btns.mute.classList.toggle('text-gray-800', state.isMuted);
         };
+        
+        els.btns.music.onclick = Audio.toggleMusic;
 
         els.btns.theme.onclick = () => toggleTheme();
+        
+        // Splash Screen Start
+        els.btns.start.onclick = async () => {
+            // Unlock audio on click
+            await Audio.init();
+            // Hide splash screen
+            els.splash.classList.add('animate-fade-out');
+        };
 
         // Initialize
         initGame();
