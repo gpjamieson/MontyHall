@@ -104,7 +104,7 @@
     <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
         
         <!-- Left: Game Arena -->
-        <section class="flex-1 flex flex-col bg-gray-100 dark:bg-gray-850 relative overflow-y-auto transition-colors duration-300">
+        <section id="gameArena" class="flex-1 flex flex-col bg-gray-100 dark:bg-gray-850 relative overflow-y-auto transition-colors duration-300 cursor-default">
             <div class="flex-1 flex flex-col items-center justify-center p-4 md:p-6 min-h-[400px]">
                 
                 <!-- Feedback Message -->
@@ -216,7 +216,7 @@
     </main>
 
     <!-- Hidden audio element for looping music -->
-    <audio id="bgMusic" src="ambient-piano-x-relaxing-prod-by-blackpybeats-109400.mp3" loop preload="auto"></audio>
+    <audio id="bgMusic" src="audio/ambient-piano-x-relaxing-prod-by-blackpybeats-109400.mp3" loop preload="auto"></audio>
 
     <script>
         // --- State Management ---
@@ -240,6 +240,7 @@
             charts: { stay: null, switch: null },
             audio: document.getElementById('bgMusic'),
             splash: document.getElementById('splashScreen'),
+            arena: document.getElementById('gameArena'),
             inputs: {
                 speed: document.getElementsByName('simulationSpeed'),
                 strategy: document.getElementsByName('simulationStrategy'),
@@ -335,7 +336,7 @@
                 state.isMusicOn = !state.isMusicOn;
                 
                 if (state.isMusicOn) {
-                    els.audio.volume = 0.6; // 60% Volume
+                    els.audio.volume = 1.0; // 100% Volume
                     els.audio.play().catch(e => {
                         console.log("Music play failed (user interaction needed):", e);
                         state.isMusicOn = false; // Reset if failed
@@ -365,7 +366,8 @@
                 // Base classes, colors injected via renderDoors
                 d.className = `door rounded-lg shadow-md cursor-pointer flex items-center justify-center text-4xl font-bold door-inner select-none transition-all duration-300`;
                 d.textContent = i + 1;
-                d.onclick = () => handleDoorClick(i);
+                // Pass event to handle propagation/reset logic
+                d.onclick = (e) => handleDoorClick(i, false, e);
                 els.doors.appendChild(d);
             }
 
@@ -373,6 +375,21 @@
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 toggleTheme(true);
             }
+            
+            // Setup Click-Anywhere-To-Reset logic
+            // We use the Arena container (els.arena)
+            els.arena.onclick = (e) => {
+                // If game is OVER and we aren't simulating
+                if (state.gameStage === 'OVER' && !state.isSimulating) {
+                    // Ignore clicks on buttons (like Reset button) to avoid double firing
+                    if (e.target.closest('button')) return;
+                    // Ignore clicks on doors (handled by handleDoorClick)
+                    if (e.target.closest('.door')) return;
+                    
+                    resetRound();
+                    Audio.play('pick');
+                }
+            };
             
             initCharts();
             resetRound();
@@ -405,13 +422,28 @@
             state.picks = { initial: -1, goat: -1, final: -1 };
             renderDoors();
             setMessage("Pick a door to start!", "text-blue-800 dark:text-blue-300");
+            
+            // Reset cursor style
+            els.arena.classList.remove('cursor-pointer');
+            els.arena.classList.add('cursor-default');
         }
 
-        // Updated handleDoorClick to accept fromSimulation flag
-        function handleDoorClick(i, fromSimulation = false) {
-            if (state.gameStage === 'OVER') return;
+        // Updated handleDoorClick to accept event object for propagation handling
+        function handleDoorClick(i, fromSimulation = false, event = null) {
+            // STOP propagation so that clicking the final door doesn't bubble up 
+            // to the arena onclick and immediately reset the game.
+            if (event) event.stopPropagation();
+
+            if (state.gameStage === 'OVER') {
+                 // If manual click on a door when game is over, RESET.
+                 if (!state.isSimulating && !fromSimulation) {
+                     resetRound();
+                     Audio.play('pick');
+                 }
+                 return;
+            }
             
-            // KEY FIX: Allow click if it comes from the simulation logic
+            // Allow click if it comes from the simulation logic
             if (state.isSimulating && !fromSimulation) return; 
             
             // Manual play requires user interaction to start audio context
@@ -452,19 +484,26 @@
                 if(won) state.stats[strategy].wins++;
                 else state.stats[strategy].losses++;
 
-                finishRound(won);
+                finishRound(won, strategy);
             }
         }
 
-        function finishRound(won) {
+        function finishRound(won, strategy) {
             state.gameStage = 'OVER';
             renderDoors(); // Reveal all
             updateStatsUI();
+            
+            // Change cursor to indicate click-to-reset is available
+            els.arena.classList.remove('cursor-default');
+            els.arena.classList.add('cursor-pointer');
+
+            const stratText = strategy === 'stay' ? 'STAYED' : 'SWITCHED';
+            
             if (won) {
-                setMessage("YOU WON! 🚗", "text-green-600 dark:text-green-400");
+                setMessage(`You ${stratText} and WON! 🚗 (Click to restart)`, "text-green-600 dark:text-green-400");
                 Audio.play('win');
             } else {
-                setMessage("Got the GOAT! 🐐", "text-red-600 dark:text-red-400");
+                setMessage(`You ${stratText} and Got a GOAT! 🐐 (Click to restart)`, "text-red-600 dark:text-red-400");
                 Audio.play('lose');
             }
         }
